@@ -1,5 +1,8 @@
 'use client'
 import { useState } from 'react'
+import { FormAudit } from './components/FormAudit'
+import { LoadingScreen } from './components/LoadingScreen'
+import { ResultsView } from './components/ResultsView'
 
 export default function Home() {
   const [url, setUrl] = useState('')
@@ -69,25 +72,36 @@ export default function Home() {
     <main className="p-8">
       <h1 className="text-2xl font-bold mb-4">WCAG Accessibility Analyzer</h1>
       
-      <form onSubmit={handleSubmit} className="mb-8">
-        <input
-          type="text"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="Enter website URL"
-          className="border p-2 mr-2"
-          required
+      {loading ? (
+        <LoadingScreen />
+      ) : report && analysis ? (
+        <ResultsView 
+          results={Object.entries(report.audits || {})
+            .filter(([, audit]) => audit.score !== 1)
+            .map(([id, audit]) => ({
+              id,
+              title: id,
+              description: audit.details?.items?.[0]?.description || '',
+              severity: audit.score && audit.score < 0.5 ? 'high' : 
+                       audit.score && audit.score < 0.8 ? 'medium' : 'low'
+            }))}
+          onNewAudit={() => {
+            setReport(null)
+            setAnalysis('')
+          }}
         />
-        <button 
-          type="submit" 
-          className="bg-blue-500 text-white p-2"
-          disabled={loading}
-        >
-          {loading ? 'Analyzing...' : 'Analyze'}
-        </button>
-      </form>
+      ) : (
+        <FormAudit 
+          onSubmit={(url) => {
+            setUrl(url)
+            handleSubmit({ preventDefault: () => {} } as React.FormEvent)
+          }} 
+          isLoading={loading} 
+        />
+      )}
 
-      {report && analysis && (
+      {/* Keep existing report display as fallback */}
+      {report && analysis && !loading && (
         <div className="space-y-8">
           <div>
             <h2 className="text-xl font-semibold mb-2">
