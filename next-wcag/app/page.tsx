@@ -78,13 +78,36 @@ export default function Home() {
         <ResultsView 
           results={Object.entries(report.audits || {})
             .filter(([, audit]) => audit.score !== 1)
-            .map(([id, audit]) => ({
-              id,
-              title: id,
-              description: audit.details?.items?.[0]?.description || '',
-              severity: audit.score && audit.score < 0.5 ? 'high' : 
-                       audit.score && audit.score < 0.8 ? 'medium' : 'low'
-            }))}
+            .map(([id, audit]) => {
+              const friendlyTitle = {
+                'color-contrast': 'Color Contrast',
+                'image-alt': 'Image Alt Text',
+                'label': 'Form Labels',
+                'link-name': 'Link Descriptions',
+                'select-name': 'Select Element Labels',
+                'skip-link': 'Skip Links',
+                'aria-allowed-attr': 'ARIA Attributes',
+                'aria-required-attr': 'Required ARIA',
+                'aria-valid-attr-value': 'Valid ARIA Values',
+                'aria-valid-attr': 'Valid ARIA Attributes',
+                'button-name': 'Button Labels',
+                'document-title': 'Page Title',
+                'duplicate-id': 'Duplicate IDs',
+                'heading-order': 'Heading Hierarchy',
+                'html-has-lang': 'Language Attribute',
+                'input-image-alt': 'Image Input Alt Text',
+                'meta-viewport': 'Viewport Meta Tag'
+              }[id] || id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+
+              return {
+                id,
+                title: id,
+                friendlyTitle,
+                description: audit.details?.items?.[0]?.description || '',
+                severity: audit.score && audit.score < 0.5 ? 'high' : 
+                         audit.score && audit.score < 0.8 ? 'medium' : 'low'
+              }
+            })}
           onNewAudit={() => {
             setReport(null)
             setAnalysis('')
