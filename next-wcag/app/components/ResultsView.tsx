@@ -1,3 +1,10 @@
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+
 interface ResultItem {
   id: string
   title: string
@@ -32,7 +39,6 @@ interface ResultsViewProps {
 }
 
 export const ResultsView = ({ results, onNewAudit }: ResultsViewProps) => {
-  // Filter to only show accessibility audits and map to friendly titles
   const filteredResults = results.map(item => ({
     ...item,
     friendlyTitle: AUDIT_TITLE_MAP[item.id] || item.id
@@ -40,26 +46,70 @@ export const ResultsView = ({ results, onNewAudit }: ResultsViewProps) => {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ')
   }))
+
+  const highPriority = filteredResults.filter(item => item.severity === 'high')
+  const mediumPriority = filteredResults.filter(item => item.severity === 'medium')
+  const lowPriority = filteredResults.filter(item => item.severity === 'low')
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <h2 className="text-xl font-semibold">Accessibility Audit Results</h2>
       
-      <div className="space-y-4">
-        {filteredResults.map((item) => (
-          <div key={item.id} className="p-4 border rounded-lg">
-            <div className="flex items-center gap-2">
-              <span className={`text-sm font-medium ${
-                item.severity === 'high' ? 'text-red-500' : 
-                item.severity === 'medium' ? 'text-yellow-500' : 'text-green-500'
-              }`}>
-                {item.severity.toUpperCase()}
-              </span>
-              <h3 className="text-sm font-medium">{item.friendlyTitle}</h3>
-            </div>
-            <p className="text-sm text-zinc-500 mt-2">{item.description}</p>
-          </div>
-        ))}
-      </div>
+      <Accordion type="multiple" defaultValue={['high', 'medium']} className="w-full">
+        {highPriority.length > 0 && (
+          <AccordionItem value="high">
+            <AccordionTrigger className="text-red-500 hover:no-underline">
+              High Priority Issues ({highPriority.length})
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4">
+                {highPriority.map(item => (
+                  <div key={item.id} className="p-4 border rounded-lg">
+                    <h3 className="text-sm font-medium">{item.friendlyTitle}</h3>
+                    <p className="text-sm text-zinc-500 mt-2">{item.description}</p>
+                  </div>
+                ))}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
+        {mediumPriority.length > 0 && (
+          <AccordionItem value="medium">
+            <AccordionTrigger className="text-yellow-500 hover:no-underline">
+              Medium Priority Issues ({mediumPriority.length})
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4">
+                {mediumPriority.map(item => (
+                  <div key={item.id} className="p-4 border rounded-lg">
+                    <h3 className="text-sm font-medium">{item.friendlyTitle}</h3>
+                    <p className="text-sm text-zinc-500 mt-2">{item.description}</p>
+                  </div>
+                ))}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
+        {lowPriority.length > 0 && (
+          <AccordionItem value="low">
+            <AccordionTrigger className="text-green-500 hover:no-underline">
+              Low Priority Issues ({lowPriority.length})
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4">
+                {lowPriority.map(item => (
+                  <div key={item.id} className="p-4 border rounded-lg">
+                    <h3 className="text-sm font-medium">{item.friendlyTitle}</h3>
+                    <p className="text-sm text-zinc-500 mt-2">{item.description}</p>
+                  </div>
+                ))}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        )}
+      </Accordion>
 
       <button
         onClick={onNewAudit}
