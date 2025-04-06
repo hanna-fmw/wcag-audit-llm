@@ -17,12 +17,16 @@ export async function POST(request: Request) {
       messages: [
         { 
           role: 'system', 
-          content: 'You are an expert in website accessibility and performance.' 
+          content: `You are an expert in website accessibility analyzing Lighthouse reports.
+          - Lighthouse scores range from 0 to 1, where 1 is perfect (100%)
+          - Convert scores to percentages by multiplying by 100
+          - A score of 0.9 or above (90%) is generally good
+          - Focus on actionable recommendations to improve accessibility`
         },
         {
           role: 'user',
-          content: `Analyze this Lighthouse accessibility report and generate recommendations:
-          - Accessibility Score: ${report.categories?.accessibility?.score}
+          content: `Analyze this Lighthouse accessibility report and generate clear recommendations:
+          - Accessibility Score: ${report.categories?.accessibility?.score ? Math.round(report.categories.accessibility.score * 100) : 'N/A'}%
           - Color Contrast Issues: ${report.audits?.['color-contrast']?.details?.items?.length || 0}
           - Missing Alt Attributes: ${report.audits?.['image-alt']?.details?.items?.length || 0}
           - Keyboard Accessibility Issues: ${report.audits?.['accesskeys']?.details?.items?.length || 0}

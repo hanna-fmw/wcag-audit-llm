@@ -1,40 +1,75 @@
 import { NextResponse } from 'next/server'
-import { execSync } from 'child_process'
+import { spawn } from 'child_process'
 import fs from 'fs'
+import path from 'path'
 
 export async function POST(request: Request) {
-	let { url } = await request.json()
+  let body;
+  try {
+    body = await request.json();
+  } catch (error) {
+    return NextResponse.json(
+      { 
+        error: 'Invalid request body',
+        details: error instanceof Error ? error.message : 'Invalid JSON'
+      },
+      { status: 400 }
+    );
+  }
 
-	if (!url) {
-		return NextResponse.json({ error: 'URL is required' }, { status: 400 })
-	}
+  const { url } = body;
+  if (!url || typeof url !== 'string') {
+    return NextResponse.json(
+      { error: 'URL parameter is required and must be a string' },
+      { status: 400 }
+    );
+  }
 
-	// Normalize URL format
-	try {
-		// Add protocol if missing
-		if (!url.startsWith('http://') && !url.startsWith('https://')) {
-			url = `https://${url}`
-		}
-		// Ensure URL is valid
-		new URL(url)
-	} catch {
-		return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 })
-	}
+  const reportPath = path.join(process.cwd(), 'lighthouse-report.json')
+  
+  try {
+    // Run Lighthouse with timeout
+    const result = await new Promise((resolve, reject) => {
+      const lighthouseProcess = spawn('lighthouse', [
+        url,
+        '--output=json',
+        '--output-path=' + reportPath,
+        '--quiet',
+        '--chrome-flags="--headless --no-sandbox"',
+        '--only-categories=accessibility'
+      ])
 
-	try {
-		// Run Lighthouse
-		execSync(`lighthouse ${url} --output=json --output-path=./lighthouse.json`, {
-			stdio: 'inherit',
-		})
+      const timeout = setTimeout(() => {
+        lighthouseProcess.kill()
+        reject(new Error('Lighthouse analysis timed out after 60 seconds'))
+      }, 60000)
 
-		// Read and return the report
-		const report = fs.readFileSync('./lighthouse.json', 'utf8')
-		return NextResponse.json(JSON.parse(report))
-	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Unknown error'
-		return NextResponse.json(
-			{ error: 'Failed to generate Lighthouse report', details: message },
-			{ status: 500 }
-		)
-	}
+      lighthouseProcess.on('close', (code) => {
+        clearTimeout(timeout)
+        if (code === 0) {
+            try {
+              const report = fs.readFileSync(reportPath, 'utf8')
+              resolve(JSON.parse(report))
+            } catch (error) {
+              reject(new Error(`Failed to parse Lighthouse report: ${error instanceof Error ? error.message : 'Unknown error'}`))
+          }
+        } else {
+          reject(new Error(`Lighthouse process exited with code ${code}`))
+        }
+      })
+    })
+
+    return NextResponse.json(result)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json(
+      { error: 'Failed to generate Lighthouse report', details: message },
+      { status: 500 }
+    )
+  } finally {
+    // Clean up report file
+    if (fs.existsSync(reportPath)) {
+      fs.unlinkSync(reportPath)
+    }
+  }
 }

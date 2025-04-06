@@ -5,8 +5,7 @@ import { LoadingScreen } from './components/LoadingScreen'
 import { ResultsView } from './components/ResultsView'
 
 export default function Home() {
-  const [url, setUrl] = useState('')
-      interface AuditItem {
+  interface AuditItem {
     node?: {
       selector?: string
       snippet?: string
@@ -33,40 +32,6 @@ export default function Home() {
   const [report, setReport] = useState<LighthouseReport | null>(null)
   const [analysis, setAnalysis] = useState('')
   const [loading, setLoading] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    
-    try {
-      // Run Lighthouse
-      const res = await fetch('/api/lighthouse', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url }),
-      })
-      const reportData = await res.json()
-      setReport(reportData)
-
-      // Analyze results
-      const analysisRes = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ report: reportData }),
-      })
-      const analysisData = await analysisRes.json()
-      setAnalysis(analysisData)
-
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   return (
     <main className="p-8">
@@ -116,9 +81,36 @@ export default function Home() {
       ) : (
         <FormAudit 
           onSubmit={(url) => {
-            setUrl(url)
-            handleSubmit({ preventDefault: () => {} } as React.FormEvent)
-          }} 
+            setLoading(true)
+            fetch('/api/lighthouse', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ url }),
+            })
+            .then(res => res.json())
+            .then(data => {
+              setReport(data)
+              // Chain analysis request
+              return fetch('/api/analyze', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ report: data }),
+              })
+            })
+            .then(res => res.json())
+            .then(analysisData => {
+              setAnalysis(analysisData)
+              setLoading(false)
+            })
+            .catch(err => {
+              console.error(err)
+              setLoading(false)
+            })
+          }}
           isLoading={loading} 
         />
       )}
