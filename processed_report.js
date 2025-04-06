@@ -1,5 +1,16 @@
 const axios = require('axios')
 const fs = require('fs')
+const { execSync } = require('child_process')
+
+// Run Lighthouse and generate report
+try {
+	execSync('lighthouse https://www.wikipedia.com --output=json --output-path=lighthouse.json', {
+		stdio: 'inherit',
+	})
+} catch (error) {
+	console.error('Error running Lighthouse:', error.message)
+	process.exit(1)
+}
 
 // Load the full Lighthouse report
 const fullReport = JSON.parse(fs.readFileSync('report.json', 'utf8'))
@@ -10,29 +21,29 @@ const filteredReport = {
 	audits: {
 		'color-contrast': {
 			score: fullReport.audits?.['color-contrast']?.score,
-			issues: fullReport.audits?.['color-contrast']?.details?.items?.length || 0
+			issues: fullReport.audits?.['color-contrast']?.details?.items?.length || 0,
 		},
 		'image-alt': {
 			score: fullReport.audits?.['image-alt']?.score,
-			issues: fullReport.audits?.['image-alt']?.details?.items?.length || 0
+			issues: fullReport.audits?.['image-alt']?.details?.items?.length || 0,
 		},
 		'keyboard-accessibility': {
 			score: fullReport.audits?.['accesskeys']?.score,
-			issues: fullReport.audits?.['accesskeys']?.details?.items?.length || 0
+			issues: fullReport.audits?.['accesskeys']?.details?.items?.length || 0,
 		},
 		'aria-attributes': {
 			score: fullReport.audits?.['aria-allowed-attr']?.score,
-			issues: fullReport.audits?.['aria-allowed-attr']?.details?.items?.length || 0
+			issues: fullReport.audits?.['aria-allowed-attr']?.details?.items?.length || 0,
 		},
 		'form-labels': {
 			score: fullReport.audits?.['label']?.score,
-			issues: fullReport.audits?.['label']?.details?.items?.length || 0
+			issues: fullReport.audits?.['label']?.details?.items?.length || 0,
 		},
 		'heading-structure': {
 			score: fullReport.audits?.['heading-order']?.score,
-			issues: fullReport.audits?.['heading-order']?.details?.items?.length || 0
-		}
-	}
+			issues: fullReport.audits?.['heading-order']?.details?.items?.length || 0,
+		},
+	},
 }
 
 // Convert to JSON string for the LLM
@@ -53,10 +64,10 @@ async function generateReport() {
 					- Keyboard Accessibility Issues: ${filteredReport.audits['keyboard-accessibility'].issues}
 					- ARIA Attribute Issues: ${filteredReport.audits['aria-attributes'].issues}
 					- Form Label Issues: ${filteredReport.audits['form-labels'].issues}
-					- Heading Structure Issues: ${filteredReport.audits['heading-structure'].issues}`
+					- Heading Structure Issues: ${filteredReport.audits['heading-structure'].issues}`,
 				},
 			],
-			max_tokens: 1000
+			max_tokens: 1000,
 		})
 
 		console.log(response.data.choices[0].message.content)
